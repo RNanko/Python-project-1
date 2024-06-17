@@ -1,0 +1,4 @@
+Model	Quntity
+KKO-10	56
+GGT-12	24
+TRL-22	148
