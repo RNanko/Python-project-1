@@ -167,7 +167,7 @@ def prediction(db_path):
     print("\nPredicted"
           "\n")
 
-
+# main part
 QNTY_of_task = 0
 while QNTY_of_task < 3:
     print("Please input number of task from list:"
