@@ -1,0 +1,187 @@
+import sqlite3
+import os
+
+def shipping_ins():
+    db_path = "D:\Python project 1\Python project 1.db"
+    change_or_not = input("Do you want to change path to DB(Yes/No): ")
+    if change_or_not.capitalize() == "Yes":
+        db_path = input("Please enter the new database file path: ")
+    file_path = input("Please enter the data file path: ")
+    insert_shipping(db_path, file_path)
+
+def stock_ins():
+    db_path = "D:\Python project 1\Python project 1.db"
+    change_or_not = input("Do you want to change path to DB(Yes/No): ")
+    if change_or_not.capitalize() == "Yes":
+        db_path = input("Please enter the new database file path: ")
+    file_path = input("Please enter the data file path: ")
+    insert_stock(db_path, file_path)
+
+def prediction_ins():
+    db_path = "D:\Python project 1\Python project 1.db"
+    change_or_not = input("Do you want to change path to DB(Yes/No): ")
+    if change_or_not.capitalize() == "Yes":
+        db_path = input("Please enter the new database file path: ")
+    prediction(db_path)
+
+def insert_shipping(db_path, file_path):
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        print(f"File {file_path} does not exist.")
+        return
+
+    # Connect to SQLite database (or create it if it doesn't exist)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Create a table named SHIPPING if it doesn't exist
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS SHIPPING (
+        Date TEXT,
+        Model TEXT,
+        Quantity INTEGER
+    )
+    ''')
+
+    # Read data from the text file
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    # Prepare data for insertion
+    data = []
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) != 3:
+            print(f"Skipping line due to unexpected format: {line}")
+            continue
+        date = parts[0]
+        model = parts[1]
+        try:
+            quantity = int(parts[2])
+        except ValueError:
+            print(f"Skipping line due to invalid quantity: {line}")
+            continue
+        data.append((date, model, quantity))
+
+    # Insert data into the SHIPPING table
+    cursor.executemany('''
+    INSERT INTO SHIPPING (Date, Model, Quantity)
+    VALUES (?, ?, ?)
+    ''', data)
+
+    # Commit and close the connection
+    conn.commit()
+    conn.close()
+
+    print("Data inserted successfully!"
+          "\n")
+
+# Main function to prompt user for file and database paths
+
+
+def insert_stock(db_path, file_path):
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        print(f"File {file_path} does not exist.")
+        return
+
+    # Connect to SQLite database (or create it if it doesn't exist)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Drop previous data
+    cursor.execute('''DROP TABLE IF EXISTS STOCK''')
+
+    # Create a table named STOCK if it doesn't exist
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS STOCK (
+        Model TEXT,
+        Quantity INTEGER
+    )
+    ''')
+
+    # Read data from the text file
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    # Prepare data for insertion
+    data = []
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) != 2:
+            print(f"Skipping line due to unexpected format: {line}")
+            continue
+        model = parts[0]
+        try:
+            quantity = int(parts[1])
+        except ValueError:
+            print(f"Skipping line due to invalid quantity: {line}")
+            continue
+        data.append((model, quantity))
+
+    # Insert data into the STOCK table
+    cursor.executemany('''
+    INSERT INTO STOCK (Model, Quantity)
+    VALUES (?, ?)
+    ''', data)
+
+    # Commit and close the connection
+    conn.commit()
+    conn.close()
+
+    print("Stock updated successfully!"
+          "\n")
+
+def prediction(db_path):
+    stock = {}
+    avg_shipping = {}
+    prediciton = {}
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT Model, sum(Quantity)/count (DISTINCT Date) AS AVGSHIPPING
+        FROM SHIPPING
+        GROUP BY Model
+        ''')
+        # count by shipping date, not avarage for month
+    result_avg_shipping = cursor.fetchall()
+    for r in result_avg_shipping:
+        avg_shipping[r[0]] = r[1]
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT Model, Quantity
+        FROM STOCK
+        ''')
+    result_stock = cursor.fetchall()
+    for r in result_stock:
+        stock[r[0]] = r[1]
+
+    for model,qty in stock.items():
+        prediciton[model] = qty / avg_shipping[model]
+    # prediction shows for how many shipping days  we have stock
+    for k,v in prediciton.items():
+        v = int(v)
+        print(f'{k} stock for {v} days')
+    print("\nPredicted"
+          "\n")
+
+
+QNTY_of_task = 0
+while QNTY_of_task < 3:
+    print("Please input number of task from list:"
+    "\n1 - UPD shipping"
+    "\n2 - UPD stock"
+    "\n3 - stock using prediciton")
+    answer_1 = input("Task number: ")
+    if answer_1 == "1":
+        shipping_ins()
+        QNTY_of_task += 1
+    if answer_1 == "2":
+        stock_ins()
+        QNTY_of_task += 1
+    if answer_1 == "3":
+        prediction_ins()
+        QNTY_of_task += 1
+print("The End")
